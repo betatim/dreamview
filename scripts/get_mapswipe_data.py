@@ -3,6 +3,7 @@ import requests
 import json
 import os
 import sys
+import random
 
 import numpy as np
 
@@ -28,7 +29,25 @@ def bing_tile(quad_key):
     return tile_url
 
 
-def fetch_tiles(project_id, n_tiles=2000):
+def fetch_tile(x, y, z, klass, prj_dir):
+    tile_dir = os.path.join(prj_dir, klass, x, y, z)
+    os.makedirs(tile_dir, exist_ok=True)
+
+    aerial_file = os.path.join(tile_dir, 'aerial.jpeg')
+    if not os.path.exists(aerial_file):
+        qkey = quad_key(x, y, z)
+        bing_url = bing_tile(qkey)
+
+        r = requests.get(bing_url, stream=True)
+        if r.status_code == 200:
+            with open(aerial_file, 'wb') as f:
+                r.raw.decode_content = True
+                shutil.copyfileobj(r.raw, f)
+
+
+def fetch_tiles(project_id, n_tiles=4000, seed=1):
+    rng = random.Random(seed)
+
     prj_dir = "/tmp/mapswipe/project-%s" % project_id
     os.makedirs(prj_dir, exist_ok=True)
 
@@ -45,13 +64,14 @@ def fetch_tiles(project_id, n_tiles=2000):
     with open(os.path.join(prj_dir, 'info.json')) as f:
         prj_info = json.load(f)
 
+    # 1 = yes, 2 = maybe, 3 = bad image, 4 = perfect tie, 5 = boring
     for n,tile in enumerate(prj_info):
         if not n % 10:
-            print("fetch %i tiles" % n)
+            print("fetched %i tiles" % n)
         if n > n_tiles:
             break
 
-        klass = str(tile['decision']) # 1 = yes, 2 = maybe, 3 = bad image
+        klass = str(tile['decision'])
 
         yes = tile['yes_count']
         maybe = tile['maybe_count']
@@ -65,33 +85,33 @@ def fetch_tiles(project_id, n_tiles=2000):
         else:
             klass = classes[np.argmax([maybe, bad, yes])]
 
-        XXX = """
-        if yes/total >= 0.5:
-            klass = "1"
-        elif maybe/total >= 0.5:
-            klass = "2"
-        elif bad/total >= 0.5 or yes == maybe == bad:
-            klass = "3"
-        else:
-            print(yes, maybe, bad)
-            import pdb
-            pdb.set_trace()"""
-
         x, y, z = tile['task_x'], tile['task_y'], tile['task_z']
 
-        tile_dir = os.path.join(prj_dir, klass, x, y, z)
-        os.makedirs(tile_dir, exist_ok=True)
+        fetch_tile(x, y, z, klass, prj_dir)
 
-        aerial_file = os.path.join(tile_dir, 'aerial.jpeg')
-        if not os.path.exists(aerial_file):
-            qkey = quad_key(x, y, z)
-            bing_url = bing_tile(qkey)
+    # now fetch "boring" tiles
+    min_x, max_x = (min(int(t['task_x']) for t in prj_info),
+                    max(int(t['task_x']) for t in prj_info))
+    min_y, max_y = (min(int(t['task_y']) for t in prj_info),
+                    max(int(t['task_y']) for t in prj_info))
 
-            r = requests.get(bing_url, stream=True)
-            if r.status_code == 200:
-                with open(aerial_file, 'wb') as f:
-                    r.raw.decode_content = True
-                    shutil.copyfileobj(r.raw, f)
+    # tiles which we know aren't boring
+    good_pairs = set((int(t['task_x']), int(t['task_y'])) for t in prj_info)
+    # boring tiles we already downloaded
+    seen_pairs = set()
+    for n in range(n_tiles):
+        if not n % 10:
+            print("fetched %i boring tiles" % n)
+
+        x = rng.randint(min_x, max_x)
+        y = rng.randint(min_y, max_y)
+
+        while (x,y) in good_pairs or (x,y) in seen_pairs:
+            x = rng.randint(min_x, max_x)
+            y = rng.randint(min_y, max_y)
+
+        seen_pairs.add((x, y))
+        fetch_tile(str(x), str(y), "18", "5", prj_dir)
 
 
 if __name__ == "__main__":

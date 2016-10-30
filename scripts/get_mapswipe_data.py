@@ -7,6 +7,8 @@ import random
 
 import numpy as np
 
+from skimage import io
+
 
 def quad_key(x, y, zoom):
     x, y, zoom = int(x), int(y), int(zoom)
@@ -30,6 +32,7 @@ def bing_tile(quad_key):
 
 
 def fetch_tile(x, y, z, klass, prj_dir):
+    no_imagery_img = io.imread("no-imagery.jpeg")
     tile_dir = os.path.join(prj_dir, klass, x, y, z)
     os.makedirs(tile_dir, exist_ok=True)
 
@@ -43,6 +46,13 @@ def fetch_tile(x, y, z, klass, prj_dir):
             with open(aerial_file, 'wb') as f:
                 r.raw.decode_content = True
                 shutil.copyfileobj(r.raw, f)
+
+            img = io.imread(aerial_file)
+            if np.allclose(img, no_imagery_img):
+                os.remove(aerial_file)
+                return None
+
+    return aerial_file
 
 
 def fetch_tiles(project_id, n_tiles=4000, seed=1):

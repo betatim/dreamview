@@ -13,9 +13,10 @@ Download Bing aerial image tiles and metadata about each tile with:
 python scripts/get_mapswipe_data.py 1 # 1 -> sets mapswipe project
 ```
 
-This will fetch tiles for a subset of those for which mapswipe has a
-positive rating. It will also fetch random tiles which do no appear
-in the mapswipe dataset. These are assumed to be "boring".
+This will fetch tiles for a subset of those for which
+[mapswipe](http://mapswipe.org/) has a positive rating. It will also fetch
+random tiles which do no appear in the mapswipe dataset. These are assumed
+to be "boring".
 
 Next reorganise the data a bit and train a CNN:
 ```

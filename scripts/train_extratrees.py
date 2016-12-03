@@ -5,6 +5,8 @@ import random
 
 import numpy as np
 
+import matplotlib.pyplot as plt
+
 from skimage import img_as_ubyte
 from skimage.color import rgb2grey
 from skimage.exposure import equalize_adapthist
@@ -12,6 +14,9 @@ from skimage.io import imread
 from skimage.io import imsave
 
 from sklearn.dummy import DummyClassifier
+from sklearn.metrics import auc
+from sklearn.metrics import roc_curve
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.utils import shuffle
@@ -71,13 +76,35 @@ def run():
                                                       random_state=34)
 
     print(Counter(y), Counter(y_train), Counter(y_val))
-    et = ExtraTreesClassifier(n_estimators=600,
-                              bootstrap=True,
-                              oob_score=True,
-                              n_jobs=4, random_state=2)
-    et.fit(X_train, y_train)
-    print("OOB score:", et.oob_score_)
-    print("Validation score:", et.score(X_val, y_val))
+    for n in (10, 20, 50, 100):
+        print("n_estimators=", n)
+        et = ExtraTreesClassifier(n_estimators=n,
+                                  bootstrap=True,
+                                  oob_score=True,
+                                  n_jobs=5, random_state=2)
+        et.fit(X_train, y_train)
+        print("OOB score:", et.oob_score_)
+        print("Train score:", et.score(X_train, y_train))
+        print("Validation score:", et.score(X_val, y_val))
+
+        y_score = et.predict_proba(X_val)[:, 1]
+
+        fpr, tpr, _ = roc_curve(y_val, y_score)
+
+        print("AUC:", auc(fpr, tpr))
+
+        plt.figure()
+        lw = 2
+        plt.plot(fpr, tpr, color='darkorange',
+                 lw=lw, label='ROC curve')
+        plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        print("="*80)
+
+    plt.show()
 
 
 if __name__ == "__main__":

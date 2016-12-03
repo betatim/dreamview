@@ -1,4 +1,5 @@
 import os
+import shutil
 
 
 def run(label_fname, input_image_dir):
@@ -14,13 +15,13 @@ def run(label_fname, input_image_dir):
             fname = fname[6:]
             fname = fname.split(".")[0] + ".jpeg"
 
-            if float(score) > 0.03:
-                os.symlink(input_image_dir + fname,
-                           input_image_dir + "/class_1/" + fname)
+            if float(score) > 0.0:
+                shutil.copy(input_image_dir + fname,
+                            input_image_dir + "/class_1/" + fname)
 
             else:
-                os.symlink(input_image_dir + fname,
-                           input_image_dir + "/class_0/" + fname)
+                shutil.copy(input_image_dir + fname,
+                            input_image_dir + "/class_0/" + fname)
 
 
 if __name__ == "__main__":

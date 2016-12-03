@@ -37,10 +37,7 @@ def fetch_tile(x, y, z, prj_dir):
     y = str(y)
     z = str(z)
     no_imagery_img = io.imread("no-imagery.jpeg")
-    tile_dir = os.path.join(prj_dir, x, y, z)
-    os.makedirs(tile_dir, exist_ok=True)
 
-    aerial_file = os.path.join(tile_dir, 'aerial.jpeg')
     aerial_file = os.path.join(prj_dir, '{x}_{y}_{z}.jpeg'.format(x=x,
                                                                   y=y,
                                                                   z=z))
@@ -63,9 +60,10 @@ def fetch_tile(x, y, z, prj_dir):
 
 
 if __name__ == "__main__":
+    # This selects tiles from somewhere in Iowa
     N = 62
     X, Y = 63125, 97221
 
-    for x in range(X, X + N):
-        for y in range(Y, Y + N):
+    for x in range(X - N, X + N):
+        for y in range(Y - N, Y + N):
             fetch_tile(x, y, 18, '/tmp/24-ai-hacks/')
